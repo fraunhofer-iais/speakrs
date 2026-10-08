@@ -19,9 +19,17 @@ impl EmbeddingModel {
         mode: ExecutionMode,
         cuda_graph: bool,
     ) -> Result<Session, ort::Error> {
+        // Accelerated modes run embedding on the device, so only CPU mode needs more threads.
+        let intra_threads = if mode == ExecutionMode::Cpu {
+            std::thread::available_parallelism()
+                .map(|count| count.get().min(6))
+                .unwrap_or(1)
+        } else {
+            1
+        };
         let builder = Session::builder()?
             .with_independent_thread_pool()?
-            .with_intra_threads(1)?
+            .with_intra_threads(intra_threads)?
             .with_inter_threads(1)?
             .with_memory_pattern(true)?;
         let mut builder =
