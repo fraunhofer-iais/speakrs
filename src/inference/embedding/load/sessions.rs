@@ -108,9 +108,12 @@ impl LoadedSessions {
                 })
                 .transpose()?
         );
+        // optional: CUDA mode downloads only the multi-mask tail, not this one
         let (split_tail_session, split_tail_elapsed) = timed!(
             use_split_backend
-                .then(|| EmbeddingModel::build_session(&split_tail_path, mode))
+                .then_some(split_tail_path)
+                .filter(|path| path.exists())
+                .map(|path| EmbeddingModel::build_session(&path, mode))
                 .transpose()?
         );
         let (split_tail_batched_session, split_tail_batched_elapsed) = timed!(
